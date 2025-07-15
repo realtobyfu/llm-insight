@@ -454,10 +454,10 @@ If you use this toolkit in your research, please cite:
 
 ```bibtex
 @software{llm_interpretability_toolkit,
-  title = {LLM Interpretability Toolkit: A Production-Ready Framework for Transformer Analysis},
-  author = {Your Name},
+  title = {LLM Insight: A Production-Ready Framework for Transformer Analysis},
+  author = {Tobias Fu},
   year = {2025},
-  url = {https://github.com/yourusername/llm-interpretability-toolkit},
+  url = {https://github.com/realtobyfu/llm-insight},
   version = {1.0.0}
 }
 ```
@@ -472,12 +472,11 @@ This project builds on the excellent work of:
 
 ## 📞 Support
 
-- 📖 [Documentation](https://llm-interpretability-toolkit.readthedocs.io)
-- 💬 [GitHub Discussions](https://github.com/yourusername/llm-interpretability-toolkit/discussions)
-- 🐛 [Issue Tracker](https://github.com/yourusername/llm-interpretability-toolkit/issues)
-- 📧 [Email Support](mailto:support@example.com)
-- 💼 [Professional Support](https://example.com/support)
+- 📖 [Documentation](https://llm-insight.readthedocs.io)
+- 💬 [GitHub Discussions](https://github.com/realtobyfu/llm-insight/discussions)
+- 🐛 [Issue Tracker](https://github.com/realtobyfu/llm-insight/issues)
+- 📧 [Email Support](mailto:3tobiasfu@gmail.com)
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/llm-interpretability-toolkit&type=Date)](https://star-history.com/#yourusername/llm-interpretability-toolkit&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=realtobyfu/llm-insight&type=Date)](https://star-history.com/#realtobyfu/llm-insight&Date)
