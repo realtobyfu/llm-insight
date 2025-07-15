@@ -1,0 +1,36 @@
+model:
+  name: gpt2
+  architecture: transformer
+  max_sequence_length: 512
+  batch_size: 8
+  device: cpu
+  dtype: float32
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  workers: 1
+  log_level: INFO
+  cors_origins:
+    - "*"
+
+cache:
+  enabled: true
+  backend: redis
+  redis_url: redis://localhost:6379
+  ttl: 3600
+  max_size: 1000
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/app.log
+  rotation: daily
+  retention: 7
+
+monitoring:
+  enabled: true
+  metrics_port: 8001
+  wandb_project: llm-interpretability
+  wandb_entity: null
+  opentelemetry_endpoint: null
