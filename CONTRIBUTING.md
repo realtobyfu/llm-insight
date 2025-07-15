@@ -1,135 +1,239 @@
 # Contributing to LLM Interpretability Toolkit
 
-Thank you for your interest in contributing to the LLM Interpretability Toolkit! We welcome contributions from the community and are excited to work with you.
+Thank you for your interest in contributing to the LLM Interpretability Toolkit! This document provides guidelines and instructions for contributing to the project.
+
+## Code of Conduct
+
+We are committed to providing a welcoming and inclusive environment for all contributors. Please be respectful and considerate in all interactions.
 
 ## Getting Started
 
-1. Fork the repository on GitHub
-2. Clone your fork locally:
+1. **Fork the Repository**
    ```bash
    git clone https://github.com/yourusername/llm-interpretability-toolkit.git
    cd llm-interpretability-toolkit
    ```
-3. Create a virtual environment:
+
+2. **Set Up Development Environment**
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-4. Install in development mode:
-   ```bash
    pip install -e ".[dev]"
+   pre-commit install
    ```
 
-## Development Workflow
-
-1. Create a new branch for your feature or bugfix:
+3. **Create a Feature Branch**
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
-2. Make your changes and ensure tests pass:
-   ```bash
-   pytest tests/
-   ```
+## Development Workflow
 
-3. Format your code:
-   ```bash
-   black src tests
-   isort src tests
-   ```
+### 1. Making Changes
 
-4. Run linting:
-   ```bash
-   flake8 src tests
-   mypy src
-   ```
+- Write clean, readable code following the project's style guidelines
+- Add type hints to all function signatures
+- Update or add docstrings for any new or modified functions
+- Keep commits focused and atomic
 
-5. Commit your changes:
-   ```bash
-   git add .
-   git commit -m "Add your descriptive commit message"
-   ```
+### 2. Code Style
 
-6. Push to your fork and create a pull request
+We use the following tools to maintain code quality:
 
-## Code Style
+- **Black**: Code formatting
+- **Ruff**: Linting
+- **MyPy**: Type checking
 
-- We use Black for code formatting (line length: 88)
-- We use isort for import sorting
-- Type hints are required for all public functions
-- Docstrings should follow Google style
+Run all checks:
+```bash
+# Format code
+black src/ tests/
 
-## Testing
+# Check linting
+ruff check src/ tests/
+
+# Type checking
+mypy src/
+
+# Or run all at once
+make lint
+```
+
+### 3. Testing
 
 - Write tests for all new functionality
-- Maintain test coverage above 80%
-- Use pytest fixtures for reusable test components
-- Place unit tests in `tests/unit/` and integration tests in `tests/integration/`
+- Ensure all tests pass before submitting PR
+- Aim for >90% code coverage
 
-## Documentation
+```bash
+# Run all tests
+pytest
 
-- Update docstrings for any API changes
-- Add examples to docstrings where helpful
+# Run with coverage
+pytest --cov=src --cov-report=html
+
+# Run specific test file
+pytest tests/test_attention.py
+
+# Run tests in parallel
+pytest -n auto
+```
+
+### 4. Documentation
+
 - Update README.md if adding new features
-- Create or update notebooks in `notebooks/` for new functionality
+- Add docstrings following NumPy style
+- Update API documentation if changing endpoints
 
-## Types of Contributions
-
-### Bug Reports
-
-- Use the GitHub issue tracker
-- Include a minimal reproducible example
-- Specify your environment (OS, Python version, package versions)
-
-### Feature Requests
-
-- Open an issue to discuss the feature first
-- Explain the use case and benefits
-- Consider implementing it yourself!
-
-### Code Contributions
-
-Areas where we especially welcome contributions:
-
-1. **New Interpretability Methods**
-   - Implement papers from recent research
-   - Add novel visualization techniques
-   - Extend support for new model architectures
-
-2. **Performance Improvements**
-   - Optimize memory usage for large models
-   - Improve inference speed
-   - Add caching strategies
-
-3. **Documentation & Examples**
-   - Create tutorials and guides
-   - Add more example notebooks
-   - Improve API documentation
-
-4. **Testing**
-   - Increase test coverage
-   - Add integration tests
-   - Create benchmarks
+Example docstring:
+```python
+def analyze_attention(tokens: List[str], model_name: str = "gpt2") -> Dict[str, Any]:
+    """
+    Analyze attention patterns for given tokens.
+    
+    Parameters
+    ----------
+    tokens : List[str]
+        List of input tokens to analyze
+    model_name : str, optional
+        Name of the model to use, by default "gpt2"
+    
+    Returns
+    -------
+    Dict[str, Any]
+        Dictionary containing attention analysis results
+        
+    Examples
+    --------
+    >>> tokens = ["Hello", "world"]
+    >>> results = analyze_attention(tokens)
+    >>> print(results["max_attention"])
+    0.85
+    """
+```
 
 ## Pull Request Process
 
-1. Ensure all tests pass
-2. Update documentation as needed
-3. Add notes to CHANGELOG.md
-4. Request review from maintainers
-5. Address review feedback
-6. Celebrate when merged! 🎉
+1. **Before Submitting**
+   - Ensure all tests pass
+   - Run linting and formatting
+   - Update documentation
+   - Add entry to CHANGELOG.md
 
-## Community
+2. **PR Guidelines**
+   - Use a clear, descriptive title
+   - Reference any related issues
+   - Describe what changes were made and why
+   - Include screenshots for UI changes
 
-- Join our Discord: [link]
-- Follow us on Twitter: [@llm_interpret]
-- Read our blog: [blog.llm-interpretability.org]
+3. **PR Template**
+   ```markdown
+   ## Description
+   Brief description of changes
+   
+   ## Type of Change
+   - [ ] Bug fix
+   - [ ] New feature
+   - [ ] Breaking change
+   - [ ] Documentation update
+   
+   ## Testing
+   - [ ] Tests pass locally
+   - [ ] New tests added
+   - [ ] Coverage maintained/improved
+   
+   ## Checklist
+   - [ ] Code follows style guidelines
+   - [ ] Self-review completed
+   - [ ] Documentation updated
+   - [ ] CHANGELOG.md updated
+   ```
+
+## Areas for Contribution
+
+### High Priority
+- Performance optimizations
+- Support for additional models
+- Improved visualization tools
+- Better error handling
+- Documentation improvements
+
+### Feature Ideas
+- New interpretability methods
+- Integration with MLOps platforms
+- Additional export formats
+- Multi-GPU support
+- Real-time monitoring capabilities
+
+### Good First Issues
+Look for issues labeled `good first issue` or `help wanted` on GitHub.
+
+## Development Tips
+
+### Running Local API
+```bash
+# Start with auto-reload
+uvicorn src.api.main:app --reload --port 8000
+
+# With Redis caching
+REDIS_URL=redis://localhost:6379 uvicorn src.api.main:app --reload
+```
+
+### Testing Dashboard Changes
+```bash
+# Run dashboard locally
+streamlit run src/dashboard/app.py
+
+# With custom port
+streamlit run src/dashboard/app.py --server.port 8502
+```
+
+### Debugging
+```python
+# Add breakpoints
+import pdb; pdb.set_trace()
+
+# Or use VS Code debugger with launch.json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: FastAPI",
+            "type": "python",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": ["src.api.main:app", "--reload"],
+            "jinja": true
+        }
+    ]
+}
+```
+
+## Project Structure
+
+When adding new features, follow the existing structure:
+
+```
+src/
+├── core/           # Core algorithms (new analysis methods go here)
+├── api/            # API endpoints (new routes go here)
+├── dashboard/      # UI components (new visualizations go here)
+├── visualization/  # Plotting utilities
+└── utils/          # Helper functions
+```
+
+## Release Process
+
+1. Update version in `pyproject.toml`
+2. Update CHANGELOG.md
+3. Create release PR
+4. Tag release after merge
+5. Build and publish to PyPI
 
 ## Questions?
 
-Feel free to open an issue or reach out to the maintainers. We're here to help!
+- Open a [GitHub Discussion](https://github.com/yourusername/llm-interpretability-toolkit/discussions)
+- Check existing [Issues](https://github.com/yourusername/llm-interpretability-toolkit/issues)
+- Review the [Documentation](https://llm-interpretability-toolkit.readthedocs.io)
 
-## License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
+Thank you for contributing! 🎉
