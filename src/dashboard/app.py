@@ -10,32 +10,107 @@ import plotly.graph_objects as go
 import streamlit as st
 import torch
 
-from ..core import InterpretabilityAnalyzer
-from ..visualization import InteractiveVisualizer
+from src.core import InterpretabilityAnalyzer
+from src.visualization import InteractiveVisualizer
 
 
 # Page configuration
 st.set_page_config(
     page_title="LLM Interpretability Dashboard",
-    page_icon="🧠",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS
+# Custom CSS for professional styling
 st.markdown("""
 <style>
+    /* Main container styling */
     .main {
         padding: 0rem 1rem;
     }
-    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
-        font-size: 1.1rem;
+    
+    /* Professional color scheme */
+    :root {
+        --primary-color: #2E86AB;
+        --secondary-color: #A23B72;
+        --success-color: #27AE60;
+        --warning-color: #F39C12;
+        --danger-color: #E74C3C;
+        --neutral-bg: #F8F9FA;
+        --card-bg: #FFFFFF;
     }
+    
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    /* Metric card styling */
     .metric-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
+        background-color: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid #E5E7EB;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         margin: 0.5rem 0;
+    }
+    
+    /* Header styling */
+    h1 {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    h2, h3 {
+        color: #2C3E50;
+        font-weight: 500;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        background-color: #236590;
+        transform: translateY(-1px);
+    }
+    
+    /* Status indicators */
+    .status-success {
+        color: var(--success-color);
+        font-weight: 600;
+    }
+    
+    .status-warning {
+        color: var(--warning-color);
+        font-weight: 600;
+    }
+    
+    .status-danger {
+        color: var(--danger-color);
+        font-weight: 600;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background-color: var(--neutral-bg);
+    }
+    
+    /* Info boxes */
+    .info-box {
+        background-color: #EBF5FB;
+        border-left: 4px solid var(--primary-color);
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 4px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -53,6 +128,18 @@ class DashboardState:
             st.session_state.history = []
 
 
+def round_nested_dict(obj, decimals=3):
+    """Recursively round float values in nested structures"""
+    if isinstance(obj, dict):
+        return {k: round_nested_dict(v, decimals) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [round_nested_dict(item, decimals) for item in obj]
+    elif isinstance(obj, float):
+        return round(obj, decimals)
+    else:
+        return obj
+
+
 def initialize_analyzer(model_name: str) -> InterpretabilityAnalyzer:
     """Initialize or get cached analyzer"""
     if (st.session_state.analyzer is None or 
@@ -62,13 +149,55 @@ def initialize_analyzer(model_name: str) -> InterpretabilityAnalyzer:
     return st.session_state.analyzer
 
 
+def display_model_info():
+    """Display supported models and formats"""
+    with st.expander("Supported Models & Formats", expanded=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""
+            ### Supported Models
+            - **GPT-2 Family**: gpt2, distilgpt2, gpt2-medium, gpt2-large, gpt2-xl
+            - **BERT Family**: bert-base-uncased, bert-large-uncased, distilbert-base-uncased
+            - **RoBERTa**: roberta-base, roberta-large
+            - **T5**: t5-small, t5-base, t5-large
+            - **Any HuggingFace Model**: Via model name/path
+            
+            ### Input Formats
+            - **Text**: Plain text for analysis
+            - **Batch**: Text file with one sample per line
+            - **Token IDs**: For advanced users
+            """)
+        
+        with col2:
+            st.markdown("""
+            ### Self-Hosting Considerations
+            - **Memory Requirements**: 
+                - Small models (distilgpt2): 2-4GB
+                - Base models (gpt2, bert-base): 4-8GB
+                - Large models: 8-16GB+
+            - **GPU Recommended**: For faster inference
+            - **Storage**: Models cached locally after first download
+            - **API Alternative**: Consider API-based deployment for production
+            
+            ### Use Cases
+            - Research & Development
+            - Model debugging & testing
+            - Educational purposes
+            - Production monitoring (with proper infrastructure)
+            """)
+
+
 def main():
     """Main dashboard application"""
     state = DashboardState()
     
     # Header
-    st.title("🧠 LLM Interpretability Dashboard")
-    st.markdown("Analyze and visualize attention patterns, detect anomalies, and predict failures in language models")
+    st.title("LLM Interpretability Dashboard")
+    st.markdown("Toolkit for analyzing attention patterns, detecting anomalies, and predicting failures in language models")
+    
+    # Display model information
+    display_model_info()
     
     # Sidebar
     with st.sidebar:
@@ -84,7 +213,7 @@ def main():
         # Initialize analyzer
         analyzer = initialize_analyzer(model_name)
         
-        st.success(f"✓ Model loaded: {model_name}")
+        st.success(f"Model loaded: {model_name}")
         
         # Display model info
         st.subheader("Model Information")
@@ -108,7 +237,7 @@ def main():
         use_cache = st.checkbox("Use Cache", value=True, help="Cache results for faster repeated analysis")
     
     # Main content
-    tabs = st.tabs(["📝 Text Analysis", "🔍 Anomaly Detection", "⚠️ Failure Prediction", "📊 Batch Analysis", "📈 History"])
+    tabs = st.tabs(["Text Analysis", "Anomaly Detection", "Failure Prediction", "Batch Analysis", "History"])
     
     # Tab 1: Text Analysis
     with tabs[0]:
@@ -127,7 +256,7 @@ def main():
         with col2:
             st.write("")  # Spacer
             st.write("")
-            analyze_button = st.button("🚀 Analyze", type="primary", use_container_width=True)
+            analyze_button = st.button("Analyze", type="primary", use_container_width=True)
         
         # Analysis results
         if analyze_button and input_text:
@@ -149,7 +278,7 @@ def main():
                         "timestamp": pd.Timestamp.now()
                     })
                     
-                    st.success("✓ Analysis complete!")
+                    st.success("Analysis complete")
                     
                 except Exception as e:
                     st.error(f"Analysis failed: {str(e)}")
@@ -160,6 +289,7 @@ def main():
             results = st.session_state.analysis_results
             
             # Metrics row
+            st.markdown("### Key Metrics")
             col1, col2, col3, col4 = st.columns(4)
             
             if "attention" in results:
@@ -252,7 +382,7 @@ def main():
         with col2:
             st.write("")  # Spacer
             st.write("")
-            detect_button = st.button("🔍 Detect Anomalies", type="primary", use_container_width=True)
+            detect_button = st.button("Detect Anomalies", type="primary", use_container_width=True)
         
         if detect_button and anomaly_text:
             with st.spinner("Detecting anomalies..."):
@@ -260,16 +390,17 @@ def main():
                     anomaly_results = analyzer.detect_anomalies(anomaly_text)
                     
                     if anomaly_results["is_anomaly"]:
-                        st.error(f"⚠️ Anomaly detected! Confidence: {anomaly_results['confidence']:.2%}")
+                        st.error(f"Anomaly detected! Confidence: {anomaly_results['confidence']:.2%}")
                         st.write("**Anomaly Types:**")
                         for anomaly_type in anomaly_results["anomaly_types"]:
                             st.write(f"- {anomaly_type}")
                     else:
-                        st.success("✓ No anomalies detected")
+                        st.success("No anomalies detected")
                     
                     # Show detailed scores
                     with st.expander("Detailed Scores"):
-                        st.json(anomaly_results["scores"])
+                        rounded_scores = round_nested_dict(anomaly_results["scores"])
+                        st.json(rounded_scores)
                 
                 except Exception as e:
                     st.error(f"Anomaly detection failed: {str(e)}")
@@ -293,7 +424,7 @@ def main():
                             generate_synthetic=True,
                             n_synthetic_samples=n_samples
                         )
-                        st.success(f"✓ Model trained! Test accuracy: {train_results['test_accuracy']:.2%}")
+                        st.success(f"Model trained! Test accuracy: {train_results['test_accuracy']:.2%}")
                         
                         # Show feature importance
                         st.subheader("Top Important Features")
@@ -315,7 +446,7 @@ def main():
         with col2:
             st.write("")  # Spacer
             st.write("")
-            predict_button = st.button("⚠️ Predict Failure", type="primary", use_container_width=True)
+            predict_button = st.button("Predict Failure", type="primary", use_container_width=True)
         
         if predict_button and failure_text:
             with st.spinner("Predicting failure probability..."):
@@ -327,8 +458,9 @@ def main():
                     with col1:
                         st.metric("Failure Probability", f"{failure_results['failure_probability']:.2%}")
                     with col2:
-                        risk_color = "🔴" if failure_results["prediction"] == "high_risk" else "🟢"
-                        st.metric("Risk Level", f"{risk_color} {failure_results['prediction']}")
+                        risk_level = failure_results["prediction"]
+                        risk_color = "status-danger" if risk_level == "high_risk" else "status-success"
+                        st.markdown(f'<p class="{risk_color}">Risk Level: {risk_level.replace("_", " ").title()}</p>', unsafe_allow_html=True)
                     with col3:
                         st.metric("Confidence", f"{failure_results['confidence']:.2%}")
                     
@@ -389,6 +521,9 @@ def main():
                 
                 # Display results
                 results_df = pd.DataFrame(batch_results)
+                # Round numeric columns for display
+                numeric_cols = results_df.select_dtypes(include=['float64', 'float32']).columns
+                results_df[numeric_cols] = results_df[numeric_cols].round(3)
                 st.dataframe(results_df, use_container_width=True)
                 
                 # Summary statistics

@@ -16,9 +16,13 @@ logger = get_logger(__name__)
 class AttentionVisualizer:
     """Visualizer for attention patterns and related metrics"""
     
-    def __init__(self, style: str = "seaborn"):
+    def __init__(self, style: str = "seaborn-v0_8"):
         """Initialize visualizer with style settings"""
-        plt.style.use(style)
+        try:
+            plt.style.use(style)
+        except OSError:
+            # Fallback to default if style not found
+            plt.style.use('default')
         self.cmap = LinearSegmentedColormap.from_list(
             "attention", ["white", "lightblue", "blue", "darkblue"]
         )

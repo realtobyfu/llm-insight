@@ -51,19 +51,65 @@ class HuggingFaceModelWrapper(BaseModelWrapper):
         
         # Load model and tokenizer
         logger.info(f"Loading model: {model_name}")
-        self.model = AutoModel.from_pretrained(
-            model_name,
-            cache_dir=cache_dir,
-            output_attentions=True,
-            output_hidden_states=True,
-        )
+        
+        # Load model with proper device handling
+        try:
+            if self.device == "cuda" and torch.cuda.is_available():
+                # Try loading with device_map for large models
+                try:
+                    self.model = AutoModel.from_pretrained(
+                        model_name,
+                        cache_dir=cache_dir,
+                        output_attentions=True,
+                        output_hidden_states=True,
+                        device_map="auto",
+                        torch_dtype=torch.float16,
+                    )
+                except (ValueError, TypeError):
+                    # Fallback for models that don't support device_map
+                    self.model = AutoModel.from_pretrained(
+                        model_name,
+                        cache_dir=cache_dir,
+                        output_attentions=True,
+                        output_hidden_states=True,
+                        torch_dtype=torch.float16,
+                    )
+                    self.model = self.model.to(self.device)
+            else:
+                # Load to CPU
+                self.model = AutoModel.from_pretrained(
+                    model_name,
+                    cache_dir=cache_dir,
+                    output_attentions=True,
+                    output_hidden_states=True,
+                    torch_dtype=torch.float32,
+                )
+                self.model = self.model.to(self.device)
+        except Exception as e:
+            logger.warning(f"Error loading model with device handling: {e}")
+            # Final fallback - load to CPU first then move
+            self.model = AutoModel.from_pretrained(
+                model_name,
+                cache_dir=cache_dir,
+                output_attentions=True,
+                output_hidden_states=True,
+            )
+            if hasattr(self.model, 'to_empty'):
+                # Handle meta tensors
+                self.model = self.model.to_empty(device=self.device).to(torch.float32)
+            else:
+                self.model = self.model.to(self.device)
+        
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             cache_dir=cache_dir,
         )
         
-        # Move model to device
-        self.model = self.model.to(self.device)
+        # Set padding token if not already set
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            logger.info(f"Set pad_token to eos_token: {self.tokenizer.pad_token}")
+        
         self.model.eval()
         
         # Storage for intermediate outputs

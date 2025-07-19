@@ -17,9 +17,13 @@ logger = get_logger(__name__)
 class FeatureVisualizer:
     """Visualizer for SAE features and model activations"""
     
-    def __init__(self, style: str = "seaborn"):
+    def __init__(self, style: str = "seaborn-v0_8"):
         """Initialize visualizer with style settings"""
-        plt.style.use(style)
+        try:
+            plt.style.use(style)
+        except OSError:
+            # Fallback to default if style not found
+            plt.style.use('default')
     
     def plot_feature_activations(
         self,

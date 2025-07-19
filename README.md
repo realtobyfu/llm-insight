@@ -1,3 +1,6 @@
+![Screenshot](/screenshot.png)
+
+
 # LLM Interpretability Toolkit
 
 A production-ready toolkit for analyzing and visualizing attention patterns in transformer-based language models, implementing novel interpretability techniques to understand model decision-making processes.
@@ -263,8 +266,8 @@ docker run -p 8000:8000 \
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/llm-interpretability-toolkit.git
-cd llm-interpretability-toolkit
+git clone https://github.com/realtobyfu/llm-insight
+cd llm-insight
 
 # Create virtual environment
 python -m venv venv
