@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
+import time
 
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
@@ -18,6 +19,7 @@ from .efficient_processing import ChunkedProcessor, MemoryManager, StreamingAnal
 from ..utils.logger import get_logger, TimedLogger
 from ..utils.cache import CacheManager, cached_analysis
 from ..visualization import AttentionVisualizer, FeatureVisualizer, InteractiveVisualizer
+from ..monitoring import AnalysisMonitor
 
 logger = get_logger(__name__)
 
@@ -31,6 +33,7 @@ class InterpretabilityAnalyzer:
         config: Optional[Config] = None,
         device: Optional[str] = None,
         cache_dir: Optional[str] = None,
+        enable_monitoring: bool = True,
     ):
         """Initialize the interpretability analyzer
         
@@ -39,11 +42,13 @@ class InterpretabilityAnalyzer:
             config: Configuration object
             device: Device to run on (cuda/cpu)
             cache_dir: Directory for caching models
+            enable_monitoring: Whether to enable analysis monitoring
         """
         self.config = config or Config.from_env()
         self.model_name = model_name
         self.device = device or self.config.model.device
         self.cache_dir = cache_dir or str(self.config.models_dir)
+        self.enable_monitoring = enable_monitoring
         
         # Initialize model wrapper
         logger.info(f"Initializing InterpretabilityAnalyzer with model: {model_name}")
@@ -84,6 +89,9 @@ class InterpretabilityAnalyzer:
         self.cache_manager = CacheManager(self.config.cache)
         self._cache = {}
         
+        # Initialize monitoring
+        self.monitor = AnalysisMonitor(enable_alerts=True) if enable_monitoring else None
+        
         logger.info("InterpretabilityAnalyzer initialized successfully")
     
     def analyze(
@@ -111,6 +119,18 @@ class InterpretabilityAnalyzer:
         if methods is None:
             methods = ["attention", "importance"]
         
+        # Start monitoring if enabled
+        analysis_id = f"{self.model_name}_{int(time.time() * 1000)}"
+        metrics = None
+        if self.monitor:
+            input_text = text if isinstance(text, str) else " ".join(text)
+            metrics = self.monitor.start_analysis(
+                analysis_id=analysis_id,
+                model_name=self.model_name,
+                methods=methods,
+                input_text=input_text
+            )
+        
         # Check cache if enabled
         if use_cache:
             cache_key = self.cache_manager._generate_key(
@@ -129,28 +149,38 @@ class InterpretabilityAnalyzer:
                 return cached_result
         
         results = {}
+        error = None
         
-        with TimedLogger(logger, f"Analyzing text with methods: {methods}"):
-            
-            if "attention" in methods:
-                with TimedLogger(logger, "Extracting attention patterns"):
-                    results["attention"] = self._analyze_attention(text, **kwargs)
-            
-            if "importance" in methods:
-                with TimedLogger(logger, "Computing token importance"):
-                    results["importance"] = self._analyze_importance(text, **kwargs)
-            
-            if "activations" in methods:
-                with TimedLogger(logger, "Extracting activations"):
-                    results["activations"] = self._analyze_activations(text, **kwargs)
-            
-            if "head_patterns" in methods:
-                with TimedLogger(logger, "Detecting head patterns"):
-                    results["head_patterns"] = self._analyze_head_patterns(text, **kwargs)
-            
-            if "sae" in methods:
-                with TimedLogger(logger, "Analyzing SAE features"):
-                    results["sae"] = self._analyze_sae_features(text, **kwargs)
+        try:
+            with TimedLogger(logger, f"Analyzing text with methods: {methods}"):
+                
+                if "attention" in methods:
+                    with TimedLogger(logger, "Extracting attention patterns"):
+                        results["attention"] = self._analyze_attention(text, **kwargs)
+                
+                if "importance" in methods:
+                    with TimedLogger(logger, "Computing token importance"):
+                        results["importance"] = self._analyze_importance(text, **kwargs)
+                
+                if "activations" in methods:
+                    with TimedLogger(logger, "Extracting activations"):
+                        results["activations"] = self._analyze_activations(text, **kwargs)
+                
+                if "head_patterns" in methods:
+                    with TimedLogger(logger, "Detecting head patterns"):
+                        results["head_patterns"] = self._analyze_head_patterns(text, **kwargs)
+                
+                if "sae" in methods:
+                    with TimedLogger(logger, "Analyzing SAE features"):
+                        results["sae"] = self._analyze_sae_features(text, **kwargs)
+        except Exception as e:
+            error = str(e)
+            logger.error(f"Analysis failed: {error}")
+            # Complete monitoring with error
+            if self.monitor and metrics:
+                input_text = text if isinstance(text, str) else " ".join(text)
+                self.monitor.complete_analysis(metrics, None, error, input_text)
+            raise
         
         # Add metadata
         results["metadata"] = {
@@ -162,9 +192,14 @@ class InterpretabilityAnalyzer:
         }
         
         # Cache results if enabled
-        if use_cache:
+        if use_cache and not error:
             self.cache_manager.set(cache_key, results)
             logger.debug("Cached analysis results")
+        
+        # Complete monitoring if enabled
+        if self.monitor and metrics:
+            input_text = text if isinstance(text, str) else " ".join(text)
+            self.monitor.complete_analysis(metrics, results, error, input_text)
         
         return results
     

@@ -12,6 +12,7 @@ import torch
 
 from src.core import InterpretabilityAnalyzer
 from src.visualization import InteractiveVisualizer
+from src.monitoring import AnalysisMonitor
 
 
 # Page configuration
@@ -237,7 +238,7 @@ def main():
         use_cache = st.checkbox("Use Cache", value=True, help="Cache results for faster repeated analysis")
     
     # Main content
-    tabs = st.tabs(["Text Analysis", "Anomaly Detection", "Failure Prediction", "Batch Analysis", "History"])
+    tabs = st.tabs(["Text Analysis", "Anomaly Detection", "Failure Prediction", "Batch Analysis", "History", "Monitoring"])
     
     # Tab 1: Text Analysis
     with tabs[0]:
@@ -552,6 +553,135 @@ def main():
                 st.experimental_rerun()
         else:
             st.info("No analysis history yet")
+    
+    # Tab 6: Monitoring
+    with tabs[5]:
+        st.header("System Monitoring")
+        
+        # Get monitoring metrics if analyzer has monitoring enabled
+        if hasattr(analyzer, 'monitor') and analyzer.monitor:
+            monitor = analyzer.monitor
+            metrics = monitor.get_metrics()
+            
+            # Summary metrics
+            st.subheader("System Overview")
+            summary = metrics.get("summary", {})
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Total Analyses", summary.get("total_analyses", 0))
+            with col2:
+                error_rate = summary.get("error_rate", 0)
+                st.metric("Error Rate", f"{error_rate:.1%}", 
+                         delta=None if error_rate < 0.05 else "⚠️")
+            with col3:
+                st.metric("Anomalies", summary.get("anomalies_detected", 0))
+            with col4:
+                st.metric("High Risk", summary.get("high_risk_predictions", 0))
+            
+            # Recent performance
+            st.subheader("Recent Performance")
+            recent = summary.get("recent_stats", {})
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                avg_duration = recent.get("avg_duration_ms", 0)
+                st.metric("Avg Duration", f"{avg_duration:.0f}ms")
+            with col2:
+                max_duration = recent.get("max_duration_ms", 0)
+                st.metric("Max Duration", f"{max_duration:.0f}ms")
+            with col3:
+                avg_entropy = recent.get("avg_entropy", 0)
+                st.metric("Avg Entropy", f"{avg_entropy:.3f}")
+            
+            # Time series charts
+            st.subheader("Performance Trends")
+            
+            # Duration trend
+            duration_data = metrics.get("time_series", {}).get("duration", [])
+            if duration_data:
+                duration_df = pd.DataFrame(duration_data)
+                duration_df['timestamp'] = pd.to_datetime(duration_df['timestamp'], unit='s')
+                
+                fig = px.line(duration_df, x='timestamp', y='value', 
+                             color='model', title="Analysis Duration Over Time")
+                fig.update_yaxis(title="Duration (ms)")
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Entropy trend
+            entropy_data = metrics.get("time_series", {}).get("entropy", [])
+            if entropy_data:
+                entropy_df = pd.DataFrame(entropy_data)
+                entropy_df['timestamp'] = pd.to_datetime(entropy_df['timestamp'], unit='s')
+                
+                fig = px.line(entropy_df, x='timestamp', y='value',
+                             color='model', title="Attention Entropy Over Time")
+                fig.update_yaxis(title="Entropy")
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Model breakdown
+            st.subheader("Model Statistics")
+            model_stats = summary.get("models", {})
+            if model_stats:
+                model_df = pd.DataFrame([
+                    {"Model": model, "Analyses": count}
+                    for model, count in model_stats.items()
+                ])
+                
+                fig = px.bar(model_df, x='Model', y='Analyses',
+                            title="Analyses by Model")
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Method breakdown
+            method_stats = summary.get("methods", {})
+            if method_stats:
+                method_df = pd.DataFrame([
+                    {"Method": method, "Count": count}
+                    for method, count in method_stats.items()
+                ])
+                
+                fig = px.pie(method_df, values='Count', names='Method',
+                            title="Analysis Methods Used")
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Alerts section
+            if hasattr(monitor, 'alert_manager'):
+                st.subheader("Recent Alerts")
+                alert_stats = monitor.alert_manager.get_alert_stats()
+                
+                if alert_stats["total_alerts"] > 0:
+                    col1, col2 = st.columns([1, 3])
+                    with col1:
+                        st.metric("Total Alerts", alert_stats["total_alerts"])
+                        
+                        # Alert breakdown
+                        for severity, count in alert_stats["by_severity"].items():
+                            if severity == "critical":
+                                st.error(f"{severity.upper()}: {count}")
+                            elif severity == "error":
+                                st.error(f"{severity.upper()}: {count}")
+                            elif severity == "warning":
+                                st.warning(f"{severity.upper()}: {count}")
+                            else:
+                                st.info(f"{severity.upper()}: {count}")
+                    
+                    with col2:
+                        # Recent alerts list
+                        recent_alerts = alert_stats.get("recent_alerts", [])[:5]
+                        for alert in recent_alerts:
+                            alert_time = pd.Timestamp(alert["timestamp"], unit='s')
+                            st.write(f"**{alert_time.strftime('%H:%M:%S')}** - "
+                                   f"{alert['severity'].upper()}: {alert['message']}")
+                else:
+                    st.success("No alerts triggered")
+            
+            # Refresh button
+            if st.button("Refresh Metrics", type="secondary"):
+                st.experimental_rerun()
+                
+        else:
+            st.warning("Monitoring is not enabled for this analyzer instance")
+            st.info("To enable monitoring, initialize the analyzer with `enable_monitoring=True`")
 
 
 if __name__ == "__main__":

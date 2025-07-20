@@ -26,6 +26,9 @@ A production-ready toolkit for analyzing and visualizing attention patterns in t
 - 📦 **Batch Processing**: Efficient analysis of multiple texts simultaneously
 - 🔧 **Extensible Architecture**: Plugin system for custom interpretability methods
 - 📝 **Comprehensive API**: REST, WebSocket, and Python APIs with full documentation
+- 📊 **Production Monitoring**: Real-time metrics, alerts, and Prometheus integration
+- 🚨 **Failure Detection**: Automatic detection of LLM failure patterns
+- 📈 **Observability**: Time-series metrics and performance tracking
 
 ## 📋 Requirements
 
@@ -313,6 +316,33 @@ pytest tests/integration/
 # Run with parallel execution
 pytest -n auto
 ```
+
+## 📊 Production Monitoring
+
+The toolkit includes comprehensive monitoring capabilities for production deployments:
+
+### Monitoring Features
+- **Real-time metrics tracking** with analysis performance, error rates, and model behavior
+- **Automatic failure pattern detection** for common LLM issues (repetition, degeneration, attention collapse)
+- **Prometheus metrics export** for integration with existing monitoring stacks
+- **Alert system** with configurable rules and notification channels
+- **Historical data storage** with SQLite backend for trend analysis
+- **Dashboard monitoring tab** for visual metrics exploration
+
+### Quick Monitoring Setup
+```python
+# Initialize with monitoring
+analyzer = InterpretabilityAnalyzer(model_name="gpt2", enable_monitoring=True)
+
+# Access metrics
+metrics = analyzer.monitor.get_metrics()
+print(f"Total analyses: {metrics['summary']['total_analyses']}")
+
+# Prometheus endpoint available at
+# GET /monitoring/metrics/prometheus
+```
+
+For detailed monitoring documentation, see [MONITORING.md](MONITORING.md).
 
 ## 🏗️ Architecture
 

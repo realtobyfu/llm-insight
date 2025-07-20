@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from ..core import InterpretabilityAnalyzer, Config
 from ..utils.logger import get_logger, setup_logging
 from .websocket import websocket_endpoint
+from .routes import monitoring
 
 # Setup logging
 setup_logging()
@@ -33,7 +34,12 @@ async def lifespan(app: FastAPI):
     analyzer = InterpretabilityAnalyzer(
         model_name=config.model.name or "gpt2",
         config=config,
+        enable_monitoring=True,
     )
+    
+    # Set monitor instances for API routes
+    if analyzer.monitor:
+        monitoring.set_monitor_instances(analyzer.monitor)
     
     logger.info(f"Loaded model: {analyzer.model_name}")
     
@@ -59,6 +65,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include monitoring routes
+app.include_router(monitoring.router)
 
 
 # Request/Response models
